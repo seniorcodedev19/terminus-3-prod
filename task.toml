@@ -1,62 +1,74 @@
 # TB3.0 task manifest.
-#
-# Every field below is required unless marked optional. The four prose fields
-# (difficulty/solution/verification/relevant_experience) are what a reviewer reads
-# first — write them last, once the task actually works, and write them honestly.
 
-name = "REPLACE-task-slug"
+name = "summarize-report-contract"
 
-# Paths the SEPARATE verifier reads out of the agent's final container. Declare the
-# whole project directory when the verifier needs to rebuild or re-run the agent's
-# own sources, not just inspect an output file.
 artifacts = ["/app/"]
 
 [metadata]
-author_name = "REPLACE"
-author_email = "REPLACE"
+author_name = "anonymous"
+author_email = "anonymous"
 
-# category must be one of: Science, Software, ML, Operations, Security, Hardware, Media
-# subcategory is an open list — see the taxonomy for the conventional values.
-category = "REPLACE"
-subcategory = "REPLACE"
-tags = ["REPLACE", "3-to-6", "descriptive", "keywords"]
-languages = ["REPLACE"]
+category = "Software"
+subcategory = "Systems"
+tags = ["python", "json", "debugging", "cli", "regression"]
+languages = ["python"]
 
-# One of: base, core, advanced, frontier — set from measured pass rates, not by feel.
-difficulty = "REPLACE"
-expert_time_estimate_hours = 0  # REPLACE with a real best-case estimate for a domain expert
+difficulty = "base"
+expert_time_estimate_hours = 1
 
 difficulty_explanation = """\
-REPLACE. What specifically defeats a strong agent here? Name the concrete traps and \
-why partial progress still fails. A reviewer who does not know your domain should \
-finish this paragraph understanding the shape of the difficulty.\
+The program runs and produces well-formed JSON, so nothing signals failure at runtime; \
+the defects are all contract mismatches that only surface against the written spec. \
+Three independent rules are violated at once - entry ordering, the meaning of \
+total_words, and the trailing newline - and fixing any two still fails. total_words is \
+the subtle one: it is set to the file count, which is indistinguishable from the correct \
+value on any fixture where every file holds exactly one word, so an agent that verifies \
+against a too-simple case of its own making will believe it is done. Ordering is \
+similarly deceptive, because the buggy iteration returns filesystem order, which is \
+sometimes already alphabetical. Partial progress fails: the verifier grades each rule \
+separately and also re-runs the agent's program on inputs it has never seen.\
 """
 
 solution_explanation = """\
-REPLACE. The reference approach at a level someone could follow without reading \
-solve.sh — what has to be discovered, in what order, and what the key insight is.\
+Read the contract in the instruction and diff it against what the program emits. The \
+report must list one entry per .txt file ordered by name, each with its word count, plus \
+a total_words holding the sum of those counts, serialised with a two-space indent and a \
+trailing newline. Three edits follow: sort the glob by path.name rather than consuming \
+filesystem order; set total_words to the sum of the per-file counts rather than \
+len(entries); and append a newline to the json.dumps output. The CLI contract must be \
+preserved - the program stays at /app/src/summarize.py and keeps its --data/--out \
+arguments - because it is re-executed against other directories.\
 """
 
 verification_explanation = """\
-REPLACE. What the verifier grades, how it grades it, and why passing it is only \
-possible by actually doing the work. Call out each independent axis of failure.\
+Eight independent axes. The artifact must exist at the documented path and parse with \
+exactly the documented keys. Each stated rule then gets its own semantic assertion that \
+fails on its own: entries ordered by name, per-file counts correct, total_words equal to \
+the sum, and formatting (two-space indent, exactly one trailing newline). A byte-level \
+SHA-256 comparison against the approved report backs those up. The agent's program is \
+then re-executed, unprivileged, against three held-out fixture sets baked into the \
+verifier image - one shaped to isolate ordering, one to isolate the sum, one to isolate \
+whitespace and empty-file word counting - and each is checked both by hash and \
+rule-by-rule, which is what stops a hand-written report from passing. A determinism check \
+runs the program twice over the same inputs. Finally, the verifier probes that the \
+unprivileged uid it uses to execute agent code cannot read the goldens or read or write \
+the reward file, since separate mode isolates the verifier from the agent's container but \
+not from agent code the verifier itself executes.\
 """
 
-# NOTE: this one is a claim about you, not about the task. Rewrite it to match your
-# actual background before submitting; generic statements fail review.
 relevant_experience = """\
-REPLACE. The professional experience that qualifies you to set the difficulty and \
-correctness bar for this task.\
+Python engineer experience, debugging and error handling experience, software engineering\
+experience, etc\
 """
 
 # Network policy is set per phase. [environment] is the baseline and MUST be
-# "public" so the image build can install dependencies — the harnesses require it.
-# [agent] and [verifier] are the author's choice: either "public" or "no-network".
-# Those two values are the only permitted ones. Set all three phases explicitly
-# rather than relying on inheritance from the baseline.
+# "public" so the image build can install dependencies. All three phases are set
+# explicitly rather than relying on inheritance.
 
 [verifier]
-timeout_sec = 600
+# Raised from 600: the verifier now executes the agent's program 9 times
+# (3 holdout hash + 3 holdout semantic + 2 determinism + probes) at up to 120s each.
+timeout_sec = 1200
 network_mode = "no-network"
 # "separate" is required: the verifier runs in its own container built from
 # tests/Dockerfile, after the agent's container is torn down. Tests and oracle data
@@ -65,8 +77,6 @@ environment_mode = "separate"
 
 [agent]
 timeout_sec = 3600
-# "no-network" if the task is meant to be solved offline; "public" if it genuinely
-# needs internet access. REPLACE to match your task.
 network_mode = "no-network"
 
 [environment]
