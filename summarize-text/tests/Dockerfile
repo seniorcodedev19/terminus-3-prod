@@ -20,8 +20,7 @@ RUN useradd --system --uid 12000 --user-group --no-create-home --shell /usr/sbin
     && chmod 700 /work/out
 
 COPY test.sh test_outputs.py /tests/
-COPY holdout/ /tests/holdout/
-RUN chmod -R a+rX /tests/holdout
+COPY --chmod=755 holdout/ /tests/holdout/
 
 # Landing directory for the declared artifact. Every artifact path in task.toml needs
 # its parent to exist here, or the upload fails with "Could not find the file ...".

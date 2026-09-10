@@ -1,0 +1,103 @@
+# TB3.0 task manifest.
+#
+# Every field below is required unless marked optional. The four prose fields
+# (difficulty/solution/verification/relevant_experience) are what a reviewer reads
+# first — write them last, once the task actually works, and write them honestly.
+
+name = "summarize-report-contract"
+
+# Paths the SEPARATE verifier reads out of the agent's final container. Declare the
+# whole project directory when the verifier needs to rebuild or re-run the agent's
+# own sources, not just inspect an output file.
+artifacts = ["/app/"]
+
+[metadata]
+author_name = "anonymous"
+author_email = "anonymous"
+
+# category must be one of: Science, Software, ML, Operations, Security, Hardware, Media
+# subcategory is an open list — see the taxonomy for the conventional values.
+category = "Software"
+subcategory = "Systems"
+tags = ["python", "json", "debugging", "cli", "regression"]
+languages = ["python"]
+
+# One of: base, core, advanced, frontier — set from measured pass rates, not by feel.
+difficulty = "base"
+expert_time_estimate_hours = 1
+
+difficulty_explanation = """\
+The program runs and produces well-formed JSON, so nothing signals failure at runtime; \
+the defects only surface against the written spec. Three independent rules are broken at \
+once - entry ordering, the meaning of total_words, and the trailing newline - and fixing \
+any two still fails. total_words is the subtle one: it is set to the file count, which is \
+indistinguishable from the correct value whenever every file happens to hold exactly one \
+word, so an agent that checks its own work against a too-simple case believes it is done. \
+Ordering is similarly deceptive, since the buggy iteration returns filesystem order, which \
+is sometimes already alphabetical by coincidence. Partial credit is not possible: the \
+verifier grades each rule independently and also re-runs the agent's program against \
+held-out inputs it has never seen.\
+"""
+
+solution_explanation = """\
+Read the contract in the instruction and diff it against what the program currently \
+emits. The report must list one entry per .txt file ordered by name, each carrying its \
+word count, plus a total_words field holding the sum of those counts, serialized with a \
+two-space indent and a trailing newline. Three edits follow directly: sort the glob by \
+path.name instead of consuming raw filesystem order; set total_words to the sum of the \
+per-file word counts rather than the number of entries; and append a newline after \
+json.dumps. The CLI contract stays fixed throughout - the program remains at \
+/app/src/summarize.py with its --data/--out arguments - because the verifier re-invokes it \
+directly against inputs it supplies.\
+"""
+
+verification_explanation = """\
+Three independent checks, each catching a different way a fix could be incomplete. First, \
+the produced report.json is hashed and compared byte-for-byte against the approved output \
+for the shipped inputs, which catches ordering, the word-count formula, and the missing \
+newline in one comparison. Second, the agent's own program is re-invoked - unprivileged, \
+via setpriv - against a held-out input directory it has not seen, and that output is \
+byte-compared against a separately approved hash; this is what stops a hand-written or \
+memorized report.json from passing, since only a program that actually recomputes the \
+answer can reproduce the hash on new inputs. Third, the program is run twice over the same \
+inputs and the two outputs must be byte-identical, ruling out any reliance on filesystem \
+iteration order or other incidental nondeterminism. All expected hashes are generated from \
+solution/src and baked into the verifier image, never derived from anything the agent's \
+container can read or write.\
+"""
+
+relevant_experience = """\
+15+ years building and shipping production Python systems at scale, including backend \
+data pipelines and services where output correctness is graded against a strict, \
+external contract rather than "looks right" - the same bar this task's verifier applies. \
+Direct experience with ETL and reporting pipelines (Spark/Glue-based processing at AWS) \
+and with API/service contracts consumed by downstream systems (enterprise LLM services at \
+Microsoft, healthcare NLP output schemas at AWS), where a subtly wrong field, ordering, or \
+formatting choice breaks a consumer even though the program runs without error - the exact \
+failure mode this task's three planted defects are designed around.\
+"""
+
+# Network policy is set per phase. [environment] is the baseline and MUST be
+# "public" so the image build can install dependencies — the harnesses require it.
+# [agent] and [verifier] are the author's choice: either "public" or "no-network".
+# Those two values are the only permitted ones. Set all three phases explicitly
+# rather than relying on inheritance from the baseline.
+
+[verifier]
+timeout_sec = 1800
+network_mode = "no-network"
+# "separate" is required: the verifier runs in its own container built from
+# tests/Dockerfile, after the agent's container is torn down. Tests and oracle data
+# are therefore never visible to the agent.
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 3600
+network_mode = "public"
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 600
+cpus = 2
+memory_mb = 8192
+storage_mb = 10240
