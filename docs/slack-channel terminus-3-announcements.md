@@ -340,3 +340,29 @@ For now, please be patient and avoid repeatedly resubmitting or posting the same
 We know this is frustrating and appreciate your patience while we work through it.
 
 ----------------------------
+@channel
+:bar_chart: Difficulty is now measured once — and you'll see the final tier before review
+We've simplified how difficulty gets measured. The two-stage model is gone.
+
+What changed
+• One measurement, 8 runs. After your task passes the quality panel, the platform runs 4 trials per model across both models. That tier is final.
+• No more provisional tier. There's no 4-run iteration check anymore, so no tier that might shift later.
+• Nothing runs after acceptance. The tier your reviewer sees is the one your task keeps.
+What it means for you
+• At least one of the 8 runs must fail for the task to proceed. This is the same 100%-accuracy rule as before — a task every run solves gives no signal — just applied at one point instead of two.
+• Keep testing locally with -k 4. It mirrors the platform measurement. Your local result is still an estimate — seeds and days move results — but there's no longer a shorter platform check that can disagree with the final one.
+• Set difficulty in task.toml to your best estimate and move on. The platform's measurement is what gets recorded. A mismatch isn't a defect and reviewers won't spend time on it. (A retired tier name — easy / medium / hard — is still a problem. Use frontier / advanced / core / base.)
+
+What hasn't changed
+The tiers, the thresholds, and what makes a task hard. Base (80–100%) is still a wanted tier. 100% averaged across both models is still not accepted.
+
+Full detail:
+:link: https://snorkel-ai.github.io/Terminus-EC-Training-stateful/portal/docs/understanding-tasks/difficulty-guidelines
+
+----------------------------
+NOTE: This supersedes the earlier "Difficulty runs have changed — new two-stage model"
+announcement above (the one describing 4-run in-platform iteration + 8-run post-acceptance
+final). That two-stage model is retired; see this entry for the current single-measurement
+model. docs/15.Difficulty Guidelines.md and the terminus3 skill have been updated to match.
+
+----------------------------

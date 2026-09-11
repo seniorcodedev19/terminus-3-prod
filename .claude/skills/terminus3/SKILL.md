@@ -270,16 +270,16 @@ fail and difficulty is measured against a bad truth. Verify the oracle against t
 
 ## Difficulty — measured, never declared
 
-Accuracy = mean pass@1 across GPT-5.6 and Claude Opus 5. Two stages, different run counts:
+Accuracy = mean pass@1 across GPT-5.6 and Claude Opus 5. Measured **once**: after your
+task passes the quality panel, the platform runs 4 trials/model × 2 models = **8** runs,
+and that tier is final. Nothing runs after acceptance — no more provisional tier, no
+4-run iteration gate, no tier that can shift later.
 
-| Stage | Runs | Decides |
-|---|---|---|
-| While iterating | 2/model × 2 = **4** | Whether it can go to review |
-| After acceptance | 4/model × 2 = **8** | Your final recorded tier |
-
-**At least one of the 4 iteration runs must fail**, or the task cannot proceed — it
-gives no signal. Both models always run now; the old early-exit is gone. The tier you see
-while iterating is provisional.
+**At least one of the 8 runs must fail**, or the task cannot proceed — it gives no
+signal. Keep local-testing with `-k 4` (below); it mirrors the platform's run count, so
+there's no separate shorter check to disagree with the final one. Set `difficulty` in
+task.toml to your best local estimate and move on — the platform's measurement is what
+gets recorded, and a mismatch isn't a defect reviewers chase.
 
 | Tier | Accuracy |
 |---|---|
@@ -368,9 +368,10 @@ for `stb harbor` runs; the audit script here runs anywhere Python does.
 3. **The docs** in [docs/](../../../docs/).
 4. This skill.
 
-Known Slack-over-docs deltas already folded in above: two-stage difficulty with `-k 4`;
-retired tier names; `[environment].network_mode = "public"` mandatory; cloud-builder
-`COPY` syntax; submission and revision-queue limits; quality panel blocking on Minor.
+Known Slack-over-docs deltas already folded in above: single-measurement difficulty (8
+runs after the quality panel, `-k 4` locally, no provisional tier); retired tier names;
+`[environment].network_mode = "public"` mandatory; cloud-builder `COPY` syntax;
+submission and revision-queue limits; quality panel blocking on Minor.
 
 ## Reference files
 
