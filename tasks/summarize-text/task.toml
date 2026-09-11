@@ -52,16 +52,22 @@ directly against inputs it supplies.\
 """
 
 verification_explanation = """\
-Three independent checks, each catching a different way a fix could be incomplete. First, \
+Four independent checks, each catching a different way a fix could be incomplete. First, \
 the produced report.json is hashed and compared byte-for-byte against the approved output \
 for the shipped inputs, which catches ordering, the word-count formula, and the missing \
 newline in one comparison. Second, the agent's own program is re-invoked - unprivileged, \
 via setpriv - against a held-out input directory it has not seen, and that output is \
 byte-compared against a separately approved hash; this is what stops a hand-written or \
 memorized report.json from passing, since only a program that actually recomputes the \
-answer can reproduce the hash on new inputs. Third, the program is run twice over the same \
-inputs and the two outputs must be byte-identical, ruling out any reliance on filesystem \
-iteration order or other incidental nondeterminism. All expected hashes are generated from \
+answer can reproduce the hash on new inputs. Third, a fixture built at test time rather \
+than baked into the image - so its on-disk order is controlled directly instead of left to \
+Docker COPY semantics - names files out of alphabetical order and mixes in a non-.txt file \
+and a directory whose name matches *.txt; the parsed output is asserted structurally \
+against the sorted, files-only expectation, which catches an implementation that never \
+sorts or that treats a directory as a file even though the shipped and held-out fixtures \
+happen to look alphabetical already. Fourth, the program is run twice over the same inputs \
+and the two outputs must be byte-identical, ruling out any reliance on filesystem iteration \
+order or other incidental nondeterminism. All expected hashes are generated from \
 solution/src and baked into the verifier image, never derived from anything the agent's \
 container can read or write.\
 """

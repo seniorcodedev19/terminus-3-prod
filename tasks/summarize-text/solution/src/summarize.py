@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Word-count summariser.
-
-Usage: summarize.py --data <dir> --out <file>
-"""
+"""Word-count summariser (reference implementation)."""
 
 import argparse
 import json
@@ -11,9 +8,11 @@ from pathlib import Path
 
 def summarize(data_dir):
     entries = []
-    for path in Path(data_dir).glob("*.txt"):
+    for path in sorted(Path(data_dir).glob("*.txt"), key=lambda p: p.name):
+        if not path.is_file():
+            continue
         entries.append({"name": path.name, "words": len(path.read_text().split())})
-    return {"files": entries, "total_words": len(entries)}
+    return {"files": entries, "total_words": sum(e["words"] for e in entries)}
 
 
 def main():
@@ -25,7 +24,7 @@ def main():
     report = summarize(args.data)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(report, indent=2))
+    out.write_text(json.dumps(report, indent=2) + "\n")
 
 
 if __name__ == "__main__":

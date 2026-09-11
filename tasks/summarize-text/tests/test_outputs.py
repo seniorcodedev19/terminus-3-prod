@@ -29,6 +29,7 @@ WORK_OUT = Path("/work/out")
 SANDBOX_UID = 12000
 DROP_PRIVILEGES = [
     "setpriv",
+    "--no-new-privs",
     f"--reuid={SANDBOX_UID}",
     f"--regid={SANDBOX_UID}",
     "--clear-groups",
@@ -89,6 +90,51 @@ def test_holdout_reproduces_approved_bytes(name):
     assert actual == EXPECTED_HOLDOUT[name], (
         f"held-out set {name} did not reproduce the approved bytes\n"
         f"  expected sha256 {EXPECTED_HOLDOUT[name]}\n  actual   sha256 {actual}"
+    )
+
+
+def test_ordering_and_file_type_filtering():
+    """Entries are ordered by name, and only regular .txt files count.
+
+    Built at test time rather than baked into the image, so the on-disk layout is
+    controlled directly instead of depending on how Docker COPY happens to order a
+    directory. Names are created out of alphabetical order, and the fixture includes a
+    non-.txt file plus a directory whose name matches *.txt, to prove the program sorts
+    rather than relying on filesystem iteration order, and to prove it never treats a
+    directory as one of "the .txt files".
+    """
+    case_dir = WORK_OUT / "order-case"
+    if case_dir.exists():
+        shutil.rmtree(case_dir)
+    case_dir.mkdir(parents=True)
+    case_dir.chmod(0o755)
+
+    files = {
+        "zebra.txt": "z z z\n",
+        "mango.txt": "m m\n",
+        "apple.txt": "a\n",
+    }
+    for name, contents in files.items():
+        path = case_dir / name
+        path.write_text(contents)
+        path.chmod(0o644)
+    (case_dir / "notes.md").write_text("not a .txt file, must be ignored\n")
+    (case_dir / "notes.md").chmod(0o644)
+    (case_dir / "diary.txt").mkdir()
+    (case_dir / "diary.txt").chmod(0o755)
+
+    out = WORK_OUT / "order-case.json"
+    result = run_agent_program(case_dir, out)
+    assert result.returncode == 0, f"program failed on the ordering/filter fixture:\n{result.stderr}"
+
+    data = json.loads(out.read_text())
+    names = [entry["name"] for entry in data["files"]]
+    assert names == ["apple.txt", "mango.txt", "zebra.txt"], (
+        f"files must be ordered by name and exclude non-.txt entries and directories, got {names}"
+    )
+    expected_total = sum(len(contents.split()) for contents in files.values())
+    assert data["total_words"] == expected_total, (
+        f"total_words must be the sum of word counts, expected {expected_total}, got {data['total_words']}"
     )
 
 
